@@ -2,7 +2,8 @@
 
 const { createHash } = require('crypto');
 const signing = require('./signing');
-
+const sha512 = msg => createHash('sha512').update(msg).digest('hex');
+const getSignatures = transactions => transactions.map(t => t.signature).join``;
 /**
  * A simple validation function for transactions. Accepts a transaction
  * and returns true or false. It should reject transactions that:
@@ -12,7 +13,10 @@ const signing = require('./signing');
  */
 const isValidTransaction = transaction => {
   // Enter your solution here
-
+  if( signing.verify(transaction.source, transaction.source + transaction.recipient + transaction.amount, transaction.signature,) && transaction.amount >= 0 )
+    return true
+  else 
+    return false
 };
 
 /**
@@ -23,6 +27,8 @@ const isValidTransaction = transaction => {
  */
 const isValidBlock = block => {
   // Your code here
+  const {transactions: transaction, hash, nonce, previousHash} = block
+  return transaction.every(isValidTransaction) && hash === sha512(previousHash + getSignatures(transaction) + nonce);
 
 };
 
@@ -38,7 +44,10 @@ const isValidBlock = block => {
  */
 const isValidChain = blockchain => {
   // Your code here
-
+  const {blocks: [fBlock, ...blocks]} = blockchain
+  return blocks.every(isValidBlock) && 
+  fBlock.previousHash === null &&
+  blocks.every(({previousHash}, i) => previousHash === [fBlock, ...blocks][i].hash);
 };
 
 /**
@@ -48,7 +57,8 @@ const isValidChain = blockchain => {
  */
 const breakChain = blockchain => {
   // Your code here
-
+  const {blocks: [fBlock]} = blockchain
+  fBlock.previousHash = 0;
 };
 
 module.exports = {

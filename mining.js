@@ -18,8 +18,17 @@ class MineableTransaction {
    * signer.
    */
   constructor(privateKey, recipient = null, amount) {
-    // Enter your solution here
-
+    // Enter your solution herea
+    if(recipient != null){ 
+      this.source = signing.getPublicKey(privateKey)
+      this.recipient = recipient; 
+    }
+    else {
+      this.source = null
+      this.recipient = signing.getPublicKey(privateKey);
+    }
+    this.amount = amount;
+    this.signature = signing.sign(privateKey, this.source + this.recipient + this.amount)
   }
 }
 
@@ -34,8 +43,9 @@ class MineableBlock extends Block {
    * become valid after it is mined.
    */
   constructor(transactions, previousHash) {
-    // Your code here
-
+    super(transactions, previousHash);
+    this.hash = "";
+    this.nonce = null;
   }
 }
 
@@ -63,7 +73,10 @@ class MineableChain extends Blockchain {
    */
   constructor() {
     // Your code here
-
+    super();     // blocks
+    this.difficulty = 2;
+    this.reward = 1;
+    this.pending = [];
   }
 
   /**
@@ -79,7 +92,7 @@ class MineableChain extends Blockchain {
    */
   addTransaction(transaction) {
     // Your code here
-
+    this.pending.push(transaction);
   }
 
   /**
@@ -98,7 +111,15 @@ class MineableChain extends Blockchain {
    */
   mine(privateKey) {
     // Your code here
-
+    this.addTransaction(new MineableTransaction(privateKey, null, this.reward));
+    const block = new MineableBlock(this.pending, this.getHeadBlock().hash);
+    const nonce = 0;
+    while (!(block.hash.slice(0, difficulty) === '0'.repeat(difficulty))) {
+      block.calculateHash(nonce);
+      nonce++;
+    }
+    this.blocks.push(block);
+    this.pending = [];
   }
 }
 
@@ -119,7 +140,15 @@ class MineableChain extends Blockchain {
  */
 const isValidMineableChain = blockchain => {
   // Your code here
-
+  const {blocks: [, ...blocks], difficulty, reward} = blockchain;
+  return (
+    blocks.every(block => (block.hash.slice(0, difficulty) === '0'.repeat(difficulty))) &&  //1 -zeros-
+    blocks.every(({transactions}) => 
+      transactions.slice(0, -1).every(({source}) => source) &&  //2 -null source-
+      transactions.slice(-1).every(({amount}) => amount === reward) && //3 -amount different than the reward-
+      [...new Set(transactions.map(({source}) => source))].filter(Boolean).every(source => blockchain.getBalance(source) >= 0) //4 -negative balance-
+    )
+  )
 };
 
 module.exports = {
